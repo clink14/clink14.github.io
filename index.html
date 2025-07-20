@@ -2,11 +2,10 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ahnseohyun Portfolio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ahnseohyun's Portfolio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap');
-
     body {
       margin: 0;
       font-family: 'Nanum Gothic', sans-serif;
@@ -14,147 +13,59 @@
       color: #222;
       display: flex;
       flex-direction: column;
+      align-items: center;
+      justify-content: center;
       min-height: 100vh;
-    }
-
-    header {
-      background-color: #3a86ff;
-      color: white;
-      padding: 20px 40px;
       text-align: center;
-      font-size: 2.5rem;
-      font-weight: 700;
-      letter-spacing: 2px;
-      box-shadow: 0 3px 8px rgba(58, 134, 255, 0.6);
+      padding: 2rem;
     }
 
-    main {
-      flex: 1;
-      max-width: 900px;
-      margin: 40px auto;
-      padding: 0 20px;
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
     }
 
     h2 {
-      color: #264653;
-      border-bottom: 3px solid #3a86ff;
-      padding-bottom: 8px;
-      margin-bottom: 20px;
-    }
-
-    section {
-      margin-bottom: 50px;
-    }
-
-    .intro {
-      font-size: 1.2rem;
-      line-height: 1.6;
-      color: #264653;
-    }
-
-    .project-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 25px;
-    }
-
-    .project {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 8px 15px rgba(58, 134, 255, 0.2);
-      overflow: hidden;
-      transition: transform 0.3s ease;
-      cursor: pointer;
-    }
-
-    .project:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 15px 25px rgba(58, 134, 255, 0.35);
-    }
-
-    .project img {
-      width: 100%;
-      height: 180px;
-      object-fit: cover;
-      display: block;
-    }
-
-    .project-content {
-      padding: 15px 20px;
-    }
-
-    .project-title {
-      font-weight: 700;
-      font-size: 1.1rem;
-      margin-bottom: 8px;
-      color: #3a86ff;
-    }
-
-    .project-desc {
-      font-size: 0.95rem;
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
       color: #555;
-      line-height: 1.3;
+    }
+
+    .highlight {
+      color: #0077cc;
+      font-weight: bold;
+    }
+
+    .card {
+      background: white;
+      border-radius: 1rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      padding: 2rem;
+      max-width: 600px;
+      margin: 1rem;
     }
 
     footer {
-      background-color: #3a86ff;
-      color: white;
-      text-align: center;
-      padding: 15px 10px;
+      margin-top: 2rem;
       font-size: 0.9rem;
-      margin-top: auto;
-    }
-
-    @media (max-width: 480px) {
-      header {
-        font-size: 1.8rem;
-      }
+      color: #888;
     }
   </style>
 </head>
 <body>
-  <header>
-    Ahn Seohyun Portfolio
-  </header>
-  <main>
-    <section class="intro">
-      <h2>소개</h2>
-      <p>
-        안녕하세요! 저는 밝고 선명한 색감과 공간감을 사랑하는 창작자,  
-        애니메이션과 영화 그래픽 분야에서 독창적인 표현을 연구하고 있습니다.  
-        기술과 예술의 경계를 넘나들며 감동을 전달하는 작품을 만드는 것이 목표입니다.
-      </p>
-    </section>
+  <div class="card">
+    <h1>안녕하세요, 안서현입니다.</h1>
+    <h2>🎬 애니메이션 감독을 꿈꾸며 🎨</h2>
+    <p>
+      전산과와 산디과 사이에서 고민하며<br />
+      감성과 기술의 교차점에서 나만의 길을 찾고 있어요.
+    </p>
+    <p>
+      좋아하는 것: <span class="highlight">선명한 색감, 공간감, 감동을 주는 연출</span><br />
+      좋아하는 영화: Spiderverse, La La Land, Moana
+    </p>
+  </div>
 
-    <section class="projects">
-      <h2>작업물</h2>
-      <div class="project-list">
-        <div class="project">
-          <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80" alt="Project 1" />
-          <div class="project-content">
-            <div class="project-title">단편 애니메이션</div>
-            <div class="project-desc">밝고 선명한 색감과 공간감 있는 연출로 만든 감동적인 단편 영상</div>
-          </div>
-        </div>
-        <div class="project">
-          <img src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=400&q=80" alt="Project 2" />
-          <div class="project-content">
-            <div class="project-title">비주얼 이펙트 쇼릴</div>
-            <div class="project-desc">3D 파티클과 빛 효과를 활용한 다채로운 비주얼 이펙트 작업</div>
-          </div>
-        </div>
-        <div class="project">
-          <img src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=400&q=80" alt="Project 3" />
-          <div class="project-content">
-            <div class="project-title">인터랙티브 미디어</div>
-            <div class="project-desc">사용자 참여형 인터랙티브 디자인과 VR 체험 프로젝트</div>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-  <footer>
-    © 2025 Ahn Seohyun. All rights reserved.
-  </footer>
+  <footer>© 2025 ahnseohyun. 모든 권리 보유.</footer>
 </body>
 </html>
