@@ -1,71 +1,102 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ahnseohyun's Portfolio</title>
-  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Portfolio</title>
   <style>
-    body {
+    /* Reset and base styles */
+    * {
       margin: 0;
-      font-family: 'Nanum Gothic', sans-serif;
-      background: linear-gradient(135deg, #f0f8ff, #a2d5f2);
-      color: #222;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      text-align: center;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Helvetica Neue', sans-serif;
+      background-color: white;
+      color: #111;
+      line-height: 1.6;
       padding: 2rem;
     }
 
-    h1 {
-      font-size: 3rem;
-      margin-bottom: 0.5rem;
+    header {
+      border-top: 5px solid;
+      background-image: linear-gradient(to right, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+      -webkit-text-fill-color: transparent;
+      font-size: 2.5rem;
+      font-weight: bold;
+      padding-bottom: 0.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .gradient-bar {
+      height: 4px;
+      width: 100%;
+      background: linear-gradient(to right, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+      margin-bottom: 2rem;
+      border-radius: 2px;
+    }
+
+    section {
+      margin-bottom: 3rem;
     }
 
     h2 {
       font-size: 1.5rem;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
+      color: #333;
+    }
+
+    p {
+      max-width: 600px;
       color: #555;
     }
 
-    .highlight {
-      color: #0077cc;
-      font-weight: bold;
-    }
-
-    .card {
-      background: white;
-      border-radius: 1rem;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      padding: 2rem;
-      max-width: 600px;
-      margin: 1rem;
-    }
-
     footer {
-      margin-top: 2rem;
+      text-align: center;
+      color: #aaa;
       font-size: 0.9rem;
-      color: #888;
+      padding-top: 2rem;
+      border-top: 1px solid #eee;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 1rem;
+      }
+
+      header {
+        font-size: 2rem;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>안녕하세요, 안서현입니다.</h1>
-    <h2>🎬 애니메이션 감독을 꿈꾸며 🎨</h2>
-    <p>
-      전산과와 산디과 사이에서 고민하며<br />
-      감성과 기술의 교차점에서 나만의 길을 찾고 있어요.
-    </p>
-    <p>
-      좋아하는 것: <span class="highlight">선명한 색감, 공간감, 감동을 주는 연출</span><br />
-      좋아하는 영화: Spiderverse, La La Land, Moana
-    </p>
-  </div>
 
-  <footer>© 2025 ahnseohyun. 모든 권리 보유.</footer>
+  <header>ahnseohyun</header>
+  <div class="gradient-bar"></div>
+
+  <section>
+    <h2>About Me</h2>
+    <p>Hello! I'm Ahn Seohyun, a computer science major passionate about design, shaders, and storytelling through visuals.</p>
+  </section>
+
+  <section>
+    <h2>Projects</h2>
+    <p>Here’s a selection of my creative and technical work — from interactive shader magic to product redesigns and graphics programming.</p>
+  </section>
+
+  <section>
+    <h2>Contact</h2>
+    <p>Email: yourname@example.com<br>Instagram: @ahnseohyun</p>
+  </section>
+
+  <footer>
+    &copy; 2025 ahnseohyun. All rights reserved.
+  </footer>
 </body>
 </html>
