@@ -1,99 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>My Portfolio</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ahnseohyun Portfolio</title>
   <style>
-    /* Reset and base styles */
-    * {
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: white;
+      color: #111;
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Helvetica Neue', sans-serif;
-      background-color: white;
-      color: #111;
-      line-height: 1.6;
-      padding: 2rem;
     }
 
     header {
-      border-top: 5px solid;
-      background-image: linear-gradient(to right, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
-      background-clip: text;
-      -webkit-background-clip: text;
-      color: transparent;
-      -webkit-text-fill-color: transparent;
-      font-size: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid #eee;
+    }
+
+    .logo {
       font-weight: bold;
-      padding-bottom: 0.5rem;
-      margin-bottom: 2rem;
-    }
-
-    .gradient-bar {
-      height: 4px;
-      width: 100%;
-      background: linear-gradient(to right, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
-      margin-bottom: 2rem;
-      border-radius: 2px;
-    }
-
-    section {
-      margin-bottom: 3rem;
-    }
-
-    h2 {
       font-size: 1.5rem;
-      margin-bottom: 1rem;
+      background: linear-gradient(90deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    nav a {
+      margin-left: 1.5rem;
+      text-decoration: none;
       color: #333;
+      font-weight: 500;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 4rem auto;
+      padding: 0 1rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
     }
 
     p {
-      max-width: 600px;
+      font-size: 1.2rem;
+      line-height: 1.6;
       color: #555;
     }
 
     footer {
       text-align: center;
-      color: #aaa;
+      padding: 2rem;
       font-size: 0.9rem;
-      padding-top: 2rem;
-      border-top: 1px solid #eee;
-    }
-
-    @media (max-width: 600px) {
-      body {
-        padding: 1rem;
-      }
-
-      header {
-        font-size: 2rem;
-      }
+      color: #aaa;
     }
   </style>
 </head>
 <body>
+  <header>
+    <div class="logo">ahnseohyun</div>
+    <nav>
+      <a href="#projects">Projects</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
 
-  <header>ahnseohyun</header>
-  <div class="gradient-bar"></div>
+  <div class="container">
+    <section id="intro">
+      <h1>Hello, I'm ahnseohyun</h1>
+      <p>I’m a computer science major interested in expression, design, and computer graphics. Welcome to my portfolio.</p>
+    </section>
 
-  <section>
-    <h2>About Me</h2>
-    <p>Hello! I'm Ahn Seohyun, a computer science major passionate about design, shaders, and storytelling through visuals.</p>
-  </section>
+    <section id="projects">
+      <h2>Projects</h2>
+      <p>[Put your project thumbnails or descriptions here]</p>
+    </section>
 
-  <section>
-    <h2>Projects</h2>
-    <p>Here’s a selection of my creative and technical work — from interactive shader magic to product redesigns and graphics programming.</p>
-  </section>
+    <section id="about">
+      <h2>About Me</h2>
+      <p>[Your short bio here]</p>
+    </section>
 
-  <section>
-    <h2>Contact</h2>
-    <p>Email: yourname@example.com<br>Instagram: @ahnseohyun</p>
-  </section>
+    <section id="contact">
+      <h2>Contact</h2>
+      <p>Email: [your@email.com]</p>
+    </section>
+  </div>
 
   <footer>
     &copy; 2025 ahnseohyun. All rights reserved.
