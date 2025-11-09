@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Crystal Water Blob – Dynamic Rainbow Highlights</title>
+<title>Crystal Water Blob – Realistic Environment</title>
 <style>
   html, body {margin:0;height:100%;overflow:hidden;background:#000;}
   canvas {width:100%;height:100%;display:block;}
@@ -13,8 +13,10 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
 const scene = new THREE.Scene();
+
 const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
-camera.position.set(0,1.2,3);
+camera.position.set(0, 1.2, 3);
+
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(devicePixelRatio);
@@ -28,30 +30,36 @@ controls.autoRotate = true;
 controls.autoRotateSpeed = 0.25;
 
 // Lighting
-const key = new THREE.PointLight(0xffffff, 15);
+const key = new THREE.PointLight(0xffffff, 12);
 scene.add(key);
-scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+scene.add(new THREE.AmbientLight(0xffffff, 0.35));
 
-// Environment
+// Environment background + reflections
 const loader = new THREE.TextureLoader();
-let envTex;
-loader.load('https://threejs.org/examples/textures/2294472375_24a3b8ef46_o.jpg', tex=>{
-  tex.mapping = THREE.EquirectangularReflectionMapping;
-  tex.encoding = THREE.sRGBEncoding;
-  envTex = tex;
-  scene.background = tex;
-  scene.environment = tex;
-});
+let envTex = null;
+loader.load(
+  'https://threejs.org/examples/textures/2294472375_24a3b8ef46_o.jpg',
+  tex => {
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    tex.encoding = THREE.sRGBEncoding;
+    envTex = tex;
+    scene.background = tex;    // ✅ now visible background
+    scene.environment = tex;   // ✅ reflections use it too
+  }
+);
 
-// Water blob shader
+// Water blob geometry
 const geo = new THREE.SphereGeometry(1, 256, 256);
+
+// Shader material — water look with rainbow dispersion
 const mat = new THREE.ShaderMaterial({
   uniforms: {
-    time: { value: 0 },
-    envMap: { value: null },
+    time:      { value: 0 },
+    envMap:    { value: null },
     cameraPos: { value: new THREE.Vector3() },
-    ior: { value: 1.333 },
-    tint: { value: new THREE.Color(0xf4fdff) } // almost neutral tint
+    ior:       { value: 1.333 },
+    tint:      { value: new THREE.Color(0xf5fdff) },
+    lightDir:  { value: new THREE.Vector3(0.4, 0.7, 0.2).normalize() }
   },
   vertexShader: `
     uniform float time;
@@ -59,42 +67,49 @@ const mat = new THREE.ShaderMaterial({
     varying vec3 vNormal;
     void main() {
       vec3 p = position;
+      // soft, organic ripple motion
       p += normal * 0.035 * sin(p.y*6.0 + time*2.0 + p.x*3.0);
       p += normal * 0.025 * sin(p.x*7.0 - time*1.5 + p.z*2.5);
-      p += normal * 0.02  * sin(p.z*8.0 + time*2.2 + p.y*3.0);
+      p += normal * 0.020 * sin(p.z*8.0 + time*2.2 + p.y*3.0);
       vec4 worldPos = modelMatrix * vec4(p,1.0);
       vWorldPos = worldPos.xyz;
-      vNormal = normalize(normalMatrix * normal);
+      vNormal   = normalize(normalMatrix * normal);
       gl_Position = projectionMatrix * viewMatrix * worldPos;
     }
   `,
   fragmentShader: `
     precision highp float;
+
     uniform sampler2D envMap;
     uniform vec3 cameraPos;
     uniform float time;
     uniform float ior;
     uniform vec3 tint;
+    uniform vec3 lightDir;
+
     varying vec3 vWorldPos;
     varying vec3 vNormal;
 
     vec3 sampleEnv(vec3 dir){
-      vec2 uv = dir.xy * 0.5 + 0.5;
-      return texture2D(envMap, uv).rgb;
+      dir = normalize(dir);
+      float u = atan(dir.z, dir.x) / (2.0 * 3.14159265) + 0.5;
+      float v = dir.y * 0.5 + 0.5;
+      return texture2D(envMap, vec2(u, v)).rgb;
     }
 
     void main(){
       vec3 N = normalize(vNormal);
       vec3 V = normalize(cameraPos - vWorldPos);
 
-      // gentle surface ripple
-      N = normalize(N + 0.05 * vec3(
+      // Gentle surface ripples
+      vec3 noise = vec3(
         sin(vWorldPos.y*8.0 + time*2.0),
         sin(vWorldPos.z*9.0 - time*2.3),
         sin(vWorldPos.x*10.0 + time*2.6)
-      ));
+      );
+      N = normalize(N + 0.05 * noise);
 
-      // dispersion
+      // Dispersion (slightly different IOR per color)
       float iorR = 1.333;
       float iorG = 1.340;
       float iorB = 1.347;
@@ -103,42 +118,55 @@ const mat = new THREE.ShaderMaterial({
       vec3 refrG = refract(-V, N, 1.0 / iorG);
       vec3 refrB = refract(-V, N, 1.0 / iorB);
 
-      float offset = 0.008;
-      vec3 refrCol = vec3(
-        texture2D(envMap, refrR.xy*0.5 + 0.5 + offset*N.xy).r,
-        texture2D(envMap, refrG.xy*0.5 + 0.5 + offset*N.xy).g,
-        texture2D(envMap, refrB.xy*0.5 + 0.5 + offset*N.xy).b
-      );
+      float facing = clamp(1.0 - max(dot(N, V), 0.0), 0.0, 1.0);
+      float thickness = 0.4 + 1.6 * facing;
 
-      // subtle absorption
-      float thickness = 1.0 - abs(dot(N, V));
-      refrCol *= exp(-vec3(0.015,0.03,0.05)*thickness);
-      refrCol *= tint;
+      vec3 absorptionCoeff = vec3(0.01, 0.03, 0.06);
+      vec3 attenuation = exp(-absorptionCoeff * thickness);
 
-      // very soft reflection
-      float fres = pow(1.0 - max(dot(N, V), 0.0), 4.0);
-      vec3 refl = sampleEnv(reflect(-V, N));
-      vec3 color = mix(refrCol, refl, fres * 0.05);
+      vec3 colR = sampleEnv(refrR);
+      vec3 colG = sampleEnv(refrG);
+      vec3 colB = sampleEnv(refrB);
+      vec3 refrCol = vec3(colR.r, colG.g, colB.b);
+      refrCol *= attenuation * tint;
 
-      // angle-dependent rainbow sparkle
-      vec3 lightDir = normalize(vec3(sin(time*0.5), 0.6, cos(time*0.5)));
-      vec3 H = normalize(lightDir + V);
+      // Soft shadow imitation
+      vec3 L = normalize(lightDir);
+      float NdotL = max(dot(N, L), 0.0);
+      float fakeShadow = 0.35 + 0.65 * NdotL;
+      float backShadow = exp(-thickness * 1.5);
+      float shadow = mix(backShadow, fakeShadow, NdotL);
+
+      // Reflection
+      float F0 = 0.02;
+      float cosTheta = max(dot(N, V), 0.0);
+      float fres = F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+      vec3 reflDir = reflect(-V, N);
+      vec3 reflCol = sampleEnv(reflDir);
+      float reflStrength = fres * 0.035;
+      vec3 color = mix(refrCol, reflCol, reflStrength);
+
+      // Rainbow sparkle highlight
+      vec3 H = normalize(L + V);
       float specAngle = max(dot(N, H), 0.0);
       float spec = pow(specAngle, 220.0);
       float viewShift = clamp(dot(V, N), 0.0, 1.0);
       vec3 rainbow = vec3(
-        0.9 + 0.1*sin(time*2.0 + viewShift*5.0),
-        0.9 + 0.1*sin(time*2.3 + viewShift*6.0),
+        0.9 + 0.1 * sin(time*2.0  + viewShift*5.0),
+        0.9 + 0.1 * sin(time*2.3  + viewShift*6.0),
         1.0
       );
-      color += rainbow * spec * 0.25;
+      color += rainbow * spec * 0.22;
 
-      // faint edge glow
-      float facing = 1.0 - max(dot(N, V), 0.0);
+      // Edge glow
       color += tint * pow(facing, 3.0) * 0.08;
 
+      color *= shadow;
+      color = clamp(color, 0.0, 10.0);
       color = pow(color, vec3(0.4545));
-      gl_FragColor = vec4(color, 0.8); // more transparent
+
+      float alpha = 0.35 + 0.4 * pow(facing, 1.5);
+      gl_FragColor = vec4(color, alpha);
     }
   `,
   transparent: true
@@ -152,14 +180,16 @@ const clock = new THREE.Clock();
 function animate(){
   requestAnimationFrame(animate);
   const t = clock.getElapsedTime();
+
   if(envTex) mat.uniforms.envMap.value = envTex;
   mat.uniforms.time.value = t;
   mat.uniforms.cameraPos.value.copy(camera.position);
 
-  blob.rotation.y += 0.003;
+  // subtle breathing motion
   const s = 1.0 + Math.sin(t*1.5)*0.02;
-  blob.scale.set(s,s,s);
+  blob.scale.set(s, s, s);
 
+  // moving light
   const r = 3.0;
   key.position.set(Math.sin(t)*r, 1.5+Math.sin(t*0.7), Math.cos(t)*r);
 
@@ -167,10 +197,10 @@ function animate(){
   renderer.render(scene, camera);
 }
 
-addEventListener('resize',()=>{
+addEventListener('resize', ()=>{
   camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight);
+  renderer.setSize(innerWidth, innerHeight);
 });
 
 animate();
