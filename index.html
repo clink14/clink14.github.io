@@ -2,189 +2,178 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Crystal Water Blob with Background</title>
+<title>Crystal Water Blob – Dynamic Rainbow Highlights</title>
 <style>
-html, body {margin:0; padding:0; overflow:hidden; background:#000;}
-canvas {width:100%; height:100%; display:block;}
+  html, body {margin:0;height:100%;overflow:hidden;background:#000;}
+  canvas {width:100%;height:100%;display:block;}
 </style>
 </head>
 <body>
-<canvas id="gl"></canvas>
-
-<!-- Vertex shader -->
-<script id="vs" type="x-shader/x-vertex">
-attribute vec2 aPos;
-varying vec2 vUV;
-void main() {
-  vUV = aPos * 0.5 + 0.5;
-  gl_Position = vec4(aPos, 0.0, 1.0);
-}
-</script>
-
-<!-- Fragment shader -->
-<script id="fs" type="x-shader/x-fragment">
-precision highp float;
-uniform vec2 iResolution;
-uniform float iTime;
-uniform sampler2D iBackground;
-varying vec2 vUV;
-
-float sdSphere(vec3 p, float r){ return length(p) - r; }
-
-vec3 normal(vec3 p){
-  float e = 0.001;
-  vec2 h = vec2(e,0);
-  float d = sdSphere(p,1.0);
-  vec3 n = vec3(
-    sdSphere(p+h.xyy,1.0)-d,
-    sdSphere(p+h.yxy,1.0)-d,
-    sdSphere(p+h.yyx,1.0)-d
-  );
-  return normalize(n);
-}
-
-float intersectSphere(vec3 ro, vec3 rd, out vec3 p, out vec3 n){
-  float t = 0.0;
-  for(int i=0;i<100;i++){
-    vec3 pos = ro + rd*t;
-    float d = sdSphere(pos,1.0);
-    if(d<0.001){ p=pos; n=normal(pos); return t; }
-    t += d*0.6;
-    if(t>10.0) break;
-  }
-  return -1.0;
-}
-
-vec3 sampleBackground(vec3 dir){
-  vec2 uv = dir.xy*0.5+0.5;
-  return texture2D(iBackground, uv).rgb;
-}
-
-void main(){
-  vec2 uv = vUV*2.0-1.0;
-  uv.x *= iResolution.x/iResolution.y;
-  float t = iTime;
-
-  vec3 ro = vec3(0.0,0.0,3.0);
-  vec3 rd = normalize(vec3(uv, -1.8));
-
-  // gentle rotation
-  float rot = t*0.3;
-  mat3 ry = mat3(
-    cos(rot),0.0,sin(rot),
-    0.0,1.0,0.0,
-    -sin(rot),0.0,cos(rot)
-  );
-  ro = ry*ro;
-  rd = ry*rd;
-
-  vec3 p; vec3 n;
-  float hit = intersectSphere(ro, rd, p, n);
-
-  vec3 col;
-  if(hit < 0.0){
-    col = texture2D(iBackground, vUV).rgb;
-  } else {
-    // stronger ripples
-    n = normalize(n + 0.25 * vec3(
-      sin(p.y*10.0 + t*3.0),
-      sin(p.z*10.0 - t*2.5),
-      sin(p.x*10.0 + t*3.5)
-    ));
-
-    vec3 viewDir = -rd;
-    vec3 reflDir = reflect(rd, n);
-    float eta = 1.0 / 1.33;
-    vec3 refrDir = refract(rd, n, eta);
-
-    // reflections & refractions
-    vec3 reflCol = sampleBackground(reflDir);
-    vec3 refrCol = sampleBackground(refrDir * 0.8 + vec3(0.0, -0.2, 0.0));
-
-    // lighter absorption for clarity
-    float thickness = 1.2 * (1.0 - abs(dot(n, viewDir)));
-    refrCol *= exp(-vec3(0.15,0.25,0.4)*thickness);
-
-    // Fresnel
-    float fres = pow(1.0 - max(dot(n, viewDir), 0.0), 3.0);
-
-    // specular
-    vec3 lightDir = normalize(vec3(sin(t*0.7), 0.6, cos(t*0.7)));
-    float spec = pow(max(dot(reflect(-lightDir, n), viewDir), 0.0), 120.0);
-
-    col = mix(refrCol, reflCol, fres);
-    col += vec3(1.0,0.95,0.8)*spec*0.5;
-  }
-
-  col = pow(col, vec3(0.4545));
-  gl_FragColor = vec4(col,1.0);
-}
-</script>
-
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
-const gl = document.getElementById("gl").getContext("webgl");
-function compile(type,src){
-  const s=gl.createShader(type);
-  gl.shaderSource(s,src);
-  gl.compileShader(s);
-  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))
-    console.error(gl.getShaderInfoLog(s));
-  return s;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(0,1.2,3);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(devicePixelRatio);
+renderer.outputEncoding = THREE.sRGBEncoding;
+document.body.appendChild(renderer.domElement);
+
+// Controls
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.25;
+
+// Lighting
+const key = new THREE.PointLight(0xffffff, 15);
+scene.add(key);
+scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+
+// Environment
+const loader = new THREE.TextureLoader();
+let envTex;
+loader.load('https://threejs.org/examples/textures/2294472375_24a3b8ef46_o.jpg', tex=>{
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.encoding = THREE.sRGBEncoding;
+  envTex = tex;
+  scene.background = tex;
+  scene.environment = tex;
+});
+
+// Water blob shader
+const geo = new THREE.SphereGeometry(1, 256, 256);
+const mat = new THREE.ShaderMaterial({
+  uniforms: {
+    time: { value: 0 },
+    envMap: { value: null },
+    cameraPos: { value: new THREE.Vector3() },
+    ior: { value: 1.333 },
+    tint: { value: new THREE.Color(0xf4fdff) } // almost neutral tint
+  },
+  vertexShader: `
+    uniform float time;
+    varying vec3 vWorldPos;
+    varying vec3 vNormal;
+    void main() {
+      vec3 p = position;
+      p += normal * 0.035 * sin(p.y*6.0 + time*2.0 + p.x*3.0);
+      p += normal * 0.025 * sin(p.x*7.0 - time*1.5 + p.z*2.5);
+      p += normal * 0.02  * sin(p.z*8.0 + time*2.2 + p.y*3.0);
+      vec4 worldPos = modelMatrix * vec4(p,1.0);
+      vWorldPos = worldPos.xyz;
+      vNormal = normalize(normalMatrix * normal);
+      gl_Position = projectionMatrix * viewMatrix * worldPos;
+    }
+  `,
+  fragmentShader: `
+    precision highp float;
+    uniform sampler2D envMap;
+    uniform vec3 cameraPos;
+    uniform float time;
+    uniform float ior;
+    uniform vec3 tint;
+    varying vec3 vWorldPos;
+    varying vec3 vNormal;
+
+    vec3 sampleEnv(vec3 dir){
+      vec2 uv = dir.xy * 0.5 + 0.5;
+      return texture2D(envMap, uv).rgb;
+    }
+
+    void main(){
+      vec3 N = normalize(vNormal);
+      vec3 V = normalize(cameraPos - vWorldPos);
+
+      // gentle surface ripple
+      N = normalize(N + 0.05 * vec3(
+        sin(vWorldPos.y*8.0 + time*2.0),
+        sin(vWorldPos.z*9.0 - time*2.3),
+        sin(vWorldPos.x*10.0 + time*2.6)
+      ));
+
+      // dispersion
+      float iorR = 1.333;
+      float iorG = 1.340;
+      float iorB = 1.347;
+
+      vec3 refrR = refract(-V, N, 1.0 / iorR);
+      vec3 refrG = refract(-V, N, 1.0 / iorG);
+      vec3 refrB = refract(-V, N, 1.0 / iorB);
+
+      float offset = 0.008;
+      vec3 refrCol = vec3(
+        texture2D(envMap, refrR.xy*0.5 + 0.5 + offset*N.xy).r,
+        texture2D(envMap, refrG.xy*0.5 + 0.5 + offset*N.xy).g,
+        texture2D(envMap, refrB.xy*0.5 + 0.5 + offset*N.xy).b
+      );
+
+      // subtle absorption
+      float thickness = 1.0 - abs(dot(N, V));
+      refrCol *= exp(-vec3(0.015,0.03,0.05)*thickness);
+      refrCol *= tint;
+
+      // very soft reflection
+      float fres = pow(1.0 - max(dot(N, V), 0.0), 4.0);
+      vec3 refl = sampleEnv(reflect(-V, N));
+      vec3 color = mix(refrCol, refl, fres * 0.05);
+
+      // angle-dependent rainbow sparkle
+      vec3 lightDir = normalize(vec3(sin(time*0.5), 0.6, cos(time*0.5)));
+      vec3 H = normalize(lightDir + V);
+      float specAngle = max(dot(N, H), 0.0);
+      float spec = pow(specAngle, 220.0);
+      float viewShift = clamp(dot(V, N), 0.0, 1.0);
+      vec3 rainbow = vec3(
+        0.9 + 0.1*sin(time*2.0 + viewShift*5.0),
+        0.9 + 0.1*sin(time*2.3 + viewShift*6.0),
+        1.0
+      );
+      color += rainbow * spec * 0.25;
+
+      // faint edge glow
+      float facing = 1.0 - max(dot(N, V), 0.0);
+      color += tint * pow(facing, 3.0) * 0.08;
+
+      color = pow(color, vec3(0.4545));
+      gl_FragColor = vec4(color, 0.8); // more transparent
+    }
+  `,
+  transparent: true
+});
+
+const blob = new THREE.Mesh(geo, mat);
+scene.add(blob);
+
+// Animation
+const clock = new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+  if(envTex) mat.uniforms.envMap.value = envTex;
+  mat.uniforms.time.value = t;
+  mat.uniforms.cameraPos.value.copy(camera.position);
+
+  blob.rotation.y += 0.003;
+  const s = 1.0 + Math.sin(t*1.5)*0.02;
+  blob.scale.set(s,s,s);
+
+  const r = 3.0;
+  key.position.set(Math.sin(t)*r, 1.5+Math.sin(t*0.7), Math.cos(t)*r);
+
+  controls.update();
+  renderer.render(scene, camera);
 }
-const vs=compile(gl.VERTEX_SHADER,document.getElementById("vs").textContent);
-const fs=compile(gl.FRAGMENT_SHADER,document.getElementById("fs").textContent);
-const prog=gl.createProgram();
-gl.attachShader(prog,vs);
-gl.attachShader(prog,fs);
-gl.linkProgram(prog);
-gl.useProgram(prog);
 
-const aPos=gl.getAttribLocation(prog,"aPos");
-const iRes=gl.getUniformLocation(prog,"iResolution");
-const iTime=gl.getUniformLocation(prog,"iTime");
-const iBackground=gl.getUniformLocation(prog,"iBackground");
+addEventListener('resize',()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
 
-const buf=gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER,buf);
-gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([
-  -1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1
-]),gl.STATIC_DRAW);
-gl.enableVertexAttribArray(aPos);
-gl.vertexAttribPointer(aPos,2,gl.FLOAT,false,0,0);
-
-// background texture
-const tex=gl.createTexture();
-const img=new Image();
-img.onload=()=>{
-  gl.bindTexture(gl.TEXTURE_2D,tex);
-  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,img);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-};
-img.src="data:image/jpeg;base64,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";
-
-function resize(){
-  gl.canvas.width=window.innerWidth;
-  gl.canvas.height=window.innerHeight;
-  gl.viewport(0,0,gl.canvas.width,gl.canvas.height);
-}
-window.addEventListener("resize",resize);
-resize();
-
-function render(time){
-  gl.clear(gl.COLOR_BUFFER_BIT);
-  gl.useProgram(prog);
-  gl.uniform2f(iRes,gl.canvas.width,gl.canvas.height);
-  gl.uniform1f(iTime,time*0.001);
-  gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D,tex);
-  gl.uniform1i(iBackground,0);
-  gl.drawArrays(gl.TRIANGLES,0,6);
-  requestAnimationFrame(render);
-}
-requestAnimationFrame(render);
+animate();
 </script>
 </body>
 </html>
