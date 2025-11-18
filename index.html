@@ -2,78 +2,90 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Crystal Water Blob – Realistic Environment</title>
+<title>Glass Rainbow Slime Blob – Outdoor</title>
 <style>
-  html, body {margin:0;height:100%;overflow:hidden;background:#000;}
-  canvas {width:100%;height:100%;display:block;}
+  html, body { margin:0; height:100%; overflow:hidden; background:#000; }
+  canvas { width:100%; height:100%; display:block; }
 </style>
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
 <script>
+// ----- 기본 세팅 -----
 const scene = new THREE.Scene();
 
-const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
-camera.position.set(0, 1.2, 3);
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
+camera.position.set(0.4, 0.9, 2.3);
 
-const renderer = new THREE.WebGLRenderer({antialias:true});
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(devicePixelRatio);
 renderer.outputEncoding = THREE.sRGBEncoding;
 document.body.appendChild(renderer.domElement);
 
-// Controls
+// Orbit controls
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.autoRotate = true;
 controls.autoRotateSpeed = 0.25;
+controls.target.set(0, 0.3, 0);
 
-// Lighting
-const key = new THREE.PointLight(0xffffff, 12);
-scene.add(key);
-scene.add(new THREE.AmbientLight(0xffffff, 0.35));
-
-// Environment background + reflections
+// ----- 야외 배경 텍스처 로드 (나중에 여기 URL을 바다 사진으로 바꿔도 됨) -----
 const loader = new THREE.TextureLoader();
 let envTex = null;
-loader.load(
-  'https://threejs.org/examples/textures/2294472375_24a3b8ef46_o.jpg',
-  tex => {
-    tex.mapping = THREE.EquirectangularReflectionMapping;
-    tex.encoding = THREE.sRGBEncoding;
-    envTex = tex;
-    scene.background = tex;    // ✅ now visible background
-    scene.environment = tex;   // ✅ reflections use it too
-  }
-);
 
-// Water blob geometry
-const geo = new THREE.SphereGeometry(1, 256, 256);
+// 샘플 야외 이미지 (원하면 너가 좋아하는 바다 파노라마 JPG로 교체해도 됨)
+const ENV_URL = "https://threejs.org/examples/textures/2294472375_24a3b8ef46_o.jpg";
 
-// Shader material — water look with rainbow dispersion
+loader.load(ENV_URL, tex => {
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.encoding = THREE.sRGBEncoding;
+  envTex = tex;
+  scene.background = tex;      // 배경
+  // Shader에서 따로 샘플링할 거라 scene.environment는 안 써도 됨
+});
+
+// ----- 조명 (조금 도움 주는 태양빛 느낌) -----
+const sun = new THREE.DirectionalLight(0xffffff, 1.3);
+sun.position.set(1.5, 2.0, 1.5);
+scene.add(sun);
+
+// ----- Blob Geometry -----
+const geo = new THREE.SphereGeometry(0.55, 128, 128);
+
+// 원래 위치 / 속도 저장 (슬라임 복원력용)
+const posAttr = geo.attributes.position;
+const basePositions = posAttr.array.slice();             // original positions
+const velocities = new Float32Array(posAttr.array.length); // per-vertex velocity
+
+// ----- Shader Material: 유리 + 강한 무지개 + 굴절 -----
 const mat = new THREE.ShaderMaterial({
   uniforms: {
     time:      { value: 0 },
     envMap:    { value: null },
     cameraPos: { value: new THREE.Vector3() },
-    ior:       { value: 1.333 },
-    tint:      { value: new THREE.Color(0xf5fdff) },
-    lightDir:  { value: new THREE.Vector3(0.4, 0.7, 0.2).normalize() }
+    ior:       { value: 1.34 },
+    tint:      { value: new THREE.Color(0xf8fdff) },
+    lightDir:  { value: new THREE.Vector3(0.5, 1.0, 0.3).normalize() }
   },
   vertexShader: `
     uniform float time;
     varying vec3 vWorldPos;
     varying vec3 vNormal;
+
     void main() {
       vec3 p = position;
-      // soft, organic ripple motion
-      p += normal * 0.035 * sin(p.y*6.0 + time*2.0 + p.x*3.0);
-      p += normal * 0.025 * sin(p.x*7.0 - time*1.5 + p.z*2.5);
-      p += normal * 0.020 * sin(p.z*8.0 + time*2.2 + p.y*3.0);
-      vec4 worldPos = modelMatrix * vec4(p,1.0);
+
+      // 부드러운 jelly wobble
+      p += normal * 0.04 * sin(p.y * 5.0 + time * 1.6 + p.x * 3.0);
+      p += normal * 0.03 * sin(p.x * 7.0 - time * 1.3 + p.z * 2.5);
+
+      vec4 worldPos = modelMatrix * vec4(p, 1.0);
       vWorldPos = worldPos.xyz;
       vNormal   = normalize(normalMatrix * normal);
+
       gl_Position = projectionMatrix * viewMatrix * worldPos;
     }
   `,
@@ -90,120 +102,191 @@ const mat = new THREE.ShaderMaterial({
     varying vec3 vWorldPos;
     varying vec3 vNormal;
 
-    vec3 sampleEnv(vec3 dir){
+    // 방향 벡터 -> equirectangular UV
+    vec2 dirToUV(vec3 dir) {
       dir = normalize(dir);
       float u = atan(dir.z, dir.x) / (2.0 * 3.14159265) + 0.5;
       float v = dir.y * 0.5 + 0.5;
-      return texture2D(envMap, vec2(u, v)).rgb;
+      return vec2(u, v);
     }
 
-    void main(){
+    void main() {
       vec3 N = normalize(vNormal);
       vec3 V = normalize(cameraPos - vWorldPos);
 
-      // Gentle surface ripples
+      // 표면에 작은 ripple 노이즈
       vec3 noise = vec3(
-        sin(vWorldPos.y*8.0 + time*2.0),
-        sin(vWorldPos.z*9.0 - time*2.3),
-        sin(vWorldPos.x*10.0 + time*2.6)
+        sin(vWorldPos.y * 6.0 + time * 1.4),
+        sin(vWorldPos.z * 7.0 - time * 1.6),
+        sin(vWorldPos.x * 8.0 + time * 1.9)
       );
-      N = normalize(N + 0.05 * noise);
+      N = normalize(N + 0.045 * noise);
 
-      // Dispersion (slightly different IOR per color)
-      float iorR = 1.333;
-      float iorG = 1.340;
-      float iorB = 1.347;
+      // 색별 IOR (무지개 강하게)
+      float iorR = ior;
+      float iorG = ior + 0.02;
+      float iorB = ior + 0.04;
 
       vec3 refrR = refract(-V, N, 1.0 / iorR);
       vec3 refrG = refract(-V, N, 1.0 / iorG);
       vec3 refrB = refract(-V, N, 1.0 / iorB);
 
-      float facing = clamp(1.0 - max(dot(N, V), 0.0), 0.0, 1.0);
-      float thickness = 0.4 + 1.6 * facing;
+      vec3 colR = texture2D(envMap, dirToUV(refrR)).rgb;
+      vec3 colG = texture2D(envMap, dirToUV(refrG)).rgb;
+      vec3 colB = texture2D(envMap, dirToUV(refrB)).rgb;
 
-      vec3 absorptionCoeff = vec3(0.01, 0.03, 0.06);
-      vec3 attenuation = exp(-absorptionCoeff * thickness);
-
-      vec3 colR = sampleEnv(refrR);
-      vec3 colG = sampleEnv(refrG);
-      vec3 colB = sampleEnv(refrB);
       vec3 refrCol = vec3(colR.r, colG.g, colB.b);
-      refrCol *= attenuation * tint;
 
-      // Soft shadow imitation
+      float facing = clamp(1.0 - max(dot(N, V), 0.0), 0.0, 1.0);
+      float thickness = 0.6 + 1.8 * facing;
+      vec3 absorption = exp(-vec3(0.01, 0.025, 0.05) * thickness);
+
+      refrCol *= absorption * tint;
+
+      // 기본 베이스를 살짝 밝게 (유리 느낌)
+      refrCol = mix(vec3(1.05, 1.04, 1.02), refrCol, 0.7);
+
+      // 프리즘 스펙 하이라이트 (강도↑)
       vec3 L = normalize(lightDir);
-      float NdotL = max(dot(N, L), 0.0);
-      float fakeShadow = 0.35 + 0.65 * NdotL;
-      float backShadow = exp(-thickness * 1.5);
-      float shadow = mix(backShadow, fakeShadow, NdotL);
-
-      // Reflection
-      float F0 = 0.02;
-      float cosTheta = max(dot(N, V), 0.0);
-      float fres = F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
-      vec3 reflDir = reflect(-V, N);
-      vec3 reflCol = sampleEnv(reflDir);
-      float reflStrength = fres * 0.035;
-      vec3 color = mix(refrCol, reflCol, reflStrength);
-
-      // Rainbow sparkle highlight
       vec3 H = normalize(L + V);
       float specAngle = max(dot(N, H), 0.0);
-      float spec = pow(specAngle, 220.0);
-      float viewShift = clamp(dot(V, N), 0.0, 1.0);
+      float spec = pow(specAngle, 260.0); // sharper highlight
+
+      float shift = dot(V, N);
       vec3 rainbow = vec3(
-        0.9 + 0.1 * sin(time*2.0  + viewShift*5.0),
-        0.9 + 0.1 * sin(time*2.3  + viewShift*6.0),
+        0.8 + 0.5 * sin(time * 2.0 + shift * 5.0),
+        0.85 + 0.55 * sin(time * 2.3 + shift * 6.0 + 1.7),
         1.0
       );
-      color += rainbow * spec * 0.22;
+      refrCol += rainbow * spec * 0.85; // 무지개 세게
 
-      // Edge glow
-      color += tint * pow(facing, 3.0) * 0.08;
+      // Fresnel reflection (조금 더 강하게)
+      float F0 = 0.04;
+      float cosTheta = max(dot(N, V), 0.0);
+      float fres = F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 
-      color *= shadow;
-      color = clamp(color, 0.0, 10.0);
-      color = pow(color, vec3(0.4545));
+      vec3 reflDir = reflect(-V, N);
+      vec3 reflCol = texture2D(envMap, dirToUV(reflDir)).rgb;
+      refrCol = mix(refrCol, refrCol * reflCol, fres * 0.15);
 
-      float alpha = 0.35 + 0.4 * pow(facing, 1.5);
-      gl_FragColor = vec4(color, alpha);
+      // 가장자리 glow
+      refrCol += tint * pow(facing, 2.4) * 0.15;
+
+      // 감마 보정
+      refrCol = pow(refrCol, vec3(0.4545));
+
+      float alpha = 0.65 + 0.3 * pow(facing, 1.2); // 더 유리처럼 (조금 투명)
+      gl_FragColor = vec4(refrCol, alpha);
     }
   `,
   transparent: true
 });
 
 const blob = new THREE.Mesh(geo, mat);
+blob.position.y = 0.3; // 살짝 떠 있는 느낌
 scene.add(blob);
 
-// Animation
-const clock = new THREE.Clock();
-function animate(){
-  requestAnimationFrame(animate);
-  const t = clock.getElapsedTime();
+// ----- 슬라임 물리: 원형으로 돌아오는 스프링 복원력 -----
+function relax(dt) {
+  const k = 6.0;   // 스프링 강도
+  const d = 3.2;   // 감쇠 (마찰)
 
-  if(envTex) mat.uniforms.envMap.value = envTex;
+  const cur = posAttr.array;
+  for (let i = 0; i < cur.length; i++) {
+    const x = cur[i];
+    const xo = basePositions[i];
+    let v = velocities[i];
+
+    const force = (xo - x) * k - v * d;
+    v += force * dt;
+    cur[i] += v * dt;
+    velocities[i] = v;
+  }
+  posAttr.needsUpdate = true;
+  geo.computeVertexNormals();
+}
+
+// ----- 마우스 드래그로 잡아 늘리기 -----
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let dragging = false;
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  dragging = true;
+  updateMouse(e);
+});
+
+renderer.domElement.addEventListener('pointerup', () => {
+  dragging = false;
+});
+
+renderer.domElement.addEventListener('pointerleave', () => {
+  dragging = false;
+});
+
+renderer.domElement.addEventListener('pointermove', (e) => {
+  updateMouse(e);
+  if (!dragging) return;
+
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObject(blob);
+  if (hits.length > 0) {
+    const hit = hits[0];
+    const face = hit.face;
+    if (!face) return;
+
+    // face의 세 버텍스를 모두 잡아당김
+    pullVertex(face.a, hit.face.normal);
+    pullVertex(face.b, hit.face.normal);
+    pullVertex(face.c, hit.face.normal);
+  }
+});
+
+function updateMouse(e) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 1.999 - 1.0;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 1.999 + 1.0;
+}
+
+function pullVertex(index, normal) {
+  const i = index * 3;
+  // local normal 방향으로 속도 추가 (살짝만)
+  velocities[i]     += normal.x * 0.6;
+  velocities[i + 1] += normal.y * 0.6;
+  velocities[i + 2] += normal.z * 0.6;
+}
+
+// ----- 애니메이션 루프 -----
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const t = clock.elapsedTime;
+
   mat.uniforms.time.value = t;
   mat.uniforms.cameraPos.value.copy(camera.position);
+  if (envTex && !mat.uniforms.envMap.value) {
+    mat.uniforms.envMap.value = envTex;
+  }
 
-  // subtle breathing motion
-  const s = 1.0 + Math.sin(t*1.5)*0.02;
-  blob.scale.set(s, s, s);
+  // float 살짝 위아래
+  blob.position.y = 0.3 + Math.sin(t * 1.4) * 0.03;
 
-  // moving light
-  const r = 3.0;
-  key.position.set(Math.sin(t)*r, 1.5+Math.sin(t*0.7), Math.cos(t)*r);
+  relax(dt);
 
   controls.update();
   renderer.render(scene, camera);
 }
 
-addEventListener('resize', ()=>{
-  camera.aspect = innerWidth/innerHeight;
+animate();
+
+// ----- 리사이즈 -----
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
-
-animate();
 </script>
 </body>
 </html>
